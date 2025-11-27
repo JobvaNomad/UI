@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QInputDialog,
 )
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QTimer
 from PyQt6.QtGui import QTextCursor, QKeySequence, QShortcut
 
 from themes import THEMES
@@ -39,6 +39,16 @@ class ChatWindow(QMainWindow):
         self.current_chat: str | None = None
 
         self.build_ui()
+
+        # --- состояние и таймер анимации "Думаю..." в пузырьке бота ---
+        self.typing_timer = QTimer(self)
+        self.typing_timer.setInterval(500)  # обновляем каждые 0.5 сек
+        self.typing_timer.timeout.connect(self.update_typing_indicator)
+        self.typing_dot_count = 0
+        self.typing_chat_name: str | None = None
+        self.typing_index: int | None = None
+        # ---------------------------------------------------------------
+
         self.apply_theme()
         self.load_chat_list()
 
@@ -123,6 +133,7 @@ class ChatWindow(QMainWindow):
         )
         right_layout.addWidget(self.chat_view, 1)
 
+        # можно оставить как статусную строку, но для "Думаю..." мы её уже не используем
         self.typing_label = QLabel("")
         self.typing_label.setStyleSheet("color: #6B7280; font-size: 9pt;")
         right_layout.addWidget(self.typing_label)
@@ -494,6 +505,45 @@ class ChatWindow(QMainWindow):
         self.chat_view.setTextCursor(cursor)
         self.chat_view.ensureCursorVisible()
 
+    # ---------- АНИМАЦИЯ "ДУМАЮ..." В ПУЗЫРЬКЕ БОТА ----------
+
+    def start_typing_animation(self, chat_name: str, index: int):
+        """Запускаем анимацию для сообщения с индексом index в чате chat_name."""
+        self.typing_chat_name = chat_name
+        self.typing_index = index
+        self.typing_dot_count = 0
+        if not self.typing_timer.isActive():
+            self.typing_timer.start()
+
+    def stop_typing_animation(self):
+        """Остановить анимацию и сбросить состояние."""
+        if self.typing_timer.isActive():
+            self.typing_timer.stop()
+        self.typing_chat_name = None
+        self.typing_index = None
+        self.typing_dot_count = 0
+        self.typing_label.setText("")
+
+    def update_typing_indicator(self):
+        """Обновление текста в временном сообщении бота: Думаю, Думаю., .., ..."""
+        if self.typing_chat_name is None or self.typing_index is None:
+            return
+
+        history = self.chat_history.get(self.typing_chat_name)
+        if history is None or not (0 <= self.typing_index < len(history)):
+            return
+
+        msg = history[self.typing_index]
+        if msg.get("sender") != "bot" or not msg.get("typing", False):
+            return
+
+        self.typing_dot_count = (self.typing_dot_count + 1) % 4
+        dots = "." * self.typing_dot_count
+        msg["text"] = "Думаю" + dots
+
+        if self.typing_chat_name == self.current_chat:
+            self.render_history(history)
+
     # ---------- ВСПОМОГАТЕЛЬНОЕ ----------
 
     def on_input_changed(self, text: str):
@@ -525,10 +575,8 @@ class ChatWindow(QMainWindow):
         if msg.get("sender") != "bot":
             return
 
-        # ПРОСТО СТАВИМ РЕЙТИНГ, без выключения и pop()
         msg["rating"] = action
 
-        # сохраняем и перерисовываем
         self.save_chat(self.current_chat)
         self.render_history(history)
 
@@ -571,27 +619,79 @@ class ChatWindow(QMainWindow):
         self.append_message_to_view("user", text, time_str, date_str, "", user_index)
         self.save_chat(self.current_chat)
 
-        self.typing_label.setText("Бот печатает…")
+        # --- временное сообщение бота "Думаю" ---
+        typing_entry = {
+            "sender": "bot",
+            "text": "Думаю",
+            "time": time_str,
+            "date": date_str,
+            "rating": "",
+            "typing": True,  # флаг, чтобы понимать, что это заглушка
+        }
+        history.append(typing_entry)
+        typing_index = len(history) - 1
 
-        bot_text = self.call_backend(text)
+        # сразу рисуем пузырёк "Думаю"
+        self.append_message_to_view(
+            "bot", typing_entry["text"], time_str, date_str, "", typing_index
+        )
+        self.save_chat(self.current_chat)
+
+        # запускаем анимацию точек в этом сообщении
+        self.start_typing_animation(self.current_chat, typing_index)
+
+        # запоминаем имя чата и текст для ответа
+        chat_name = self.current_chat
+        QTimer.singleShot(
+            1500,
+            lambda cn=chat_name, user_text=text: self.produce_bot_reply(cn, user_text),
+        )
+
+    def produce_bot_reply(self, chat_name: str, user_text: str):
+        """Подставляем реальный ответ бота вместо 'Думаю...'."""
+        if chat_name not in self.chat_history:
+            self.stop_typing_animation()
+            return
+
+        bot_text = self.call_backend(user_text)
 
         now_bot = datetime.now()
         bot_time_str = now_bot.strftime("%H:%M")
         bot_date_str = now_bot.strftime("%d.%m.%Y")
 
-        self.typing_label.setText("")
+        history = self.chat_history.setdefault(chat_name, [])
 
-        history.append(
-            {
-                "sender": "bot",
-                "text": bot_text,
-                "time": bot_time_str,
-                "date": bot_date_str,
-                "rating": "",
-            }
-        )
-        bot_index = len(history) - 1
-        self.append_message_to_view(
-            "bot", bot_text, bot_time_str, bot_date_str, "", bot_index
-        )
-        self.save_chat(self.current_chat)
+        # пытаемся обновить уже существующий "Думаю..."-месседж
+        idx = self.typing_index
+        if (
+            idx is not None
+            and 0 <= idx < len(history)
+            and history[idx].get("sender") == "bot"
+            and history[idx].get("typing", False)
+        ):
+            entry = history[idx]
+            entry["text"] = bot_text
+            entry["time"] = bot_time_str
+            entry["date"] = bot_date_str
+            entry["rating"] = ""
+            entry.pop("typing", None)
+            bot_index = idx
+        else:
+            # на всякий случай, если что-то пошло не так — добавим новое сообщение
+            history.append(
+                {
+                    "sender": "bot",
+                    "text": bot_text,
+                    "time": bot_time_str,
+                    "date": bot_date_str,
+                    "rating": "",
+                }
+            )
+            bot_index = len(history) - 1
+
+        if chat_name == self.current_chat:
+            # перерисуем весь чат, чтобы точно обновить пузырёк
+            self.render_history(history)
+
+        self.save_chat(chat_name)
+        self.stop_typing_animation()

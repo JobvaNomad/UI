@@ -231,5 +231,57 @@
     "time": "15:33",
     "date": "27.11.2025",
     "rating": "like"
+  },
+  {
+    "sender": "user",
+    "text": "прив",
+    "time": "16:09",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: прив",
+    "time": "16:09",
+    "date": "27.11.2025",
+    "rating": ""
+  },
+  {
+    "sender": "user",
+    "text": "прив",
+    "time": "16:09",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: прив",
+    "time": "16:09",
+    "date": "27.11.2025",
+    "rating": ""
+  },
+  {
+    "sender": "user",
+    "text": "ты тут?",
+    "time": "16:13",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: ты тут?",
+    "time": "16:13",
+    "date": "27.11.2025",
+    "rating": ""
+  },
+  {
+    "sender": "user",
+    "text": "ау?",
+    "time": "16:13",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: ау?",
+    "time": "16:13",
+    "date": "27.11.2025",
+    "rating": "like"
   }
 ]
