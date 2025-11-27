@@ -1,0 +1,38 @@
+# themes.py
+
+THEMES = {
+    "light": {
+        "bg": "#F3F4F6",
+        "bg_sidebar": "#F9FAFB",
+        "bg_chat": "#FFFFFF",
+        "fg": "#111827",
+        "fg_muted": "#6B7280",
+        "border": "#D1D5DB",
+        "bubble_user": "#DBEAFE",
+        "bubble_bot": "#E5E7EB",
+        "accent": "#6366F1",
+        "accent_dark": "#4F46E5",
+        "list_bg": "#F9FAFB",
+        "list_sel_bg": "#6366F1",
+        "list_sel_fg": "#FFFFFF",
+        "bg_button": "#E5E7EB",
+        "bg_button_active": "#D1D5DB",
+    },
+    "dark": {
+        "bg": "#050816",
+        "bg_sidebar": "#050816",
+        "bg_chat": "#070B2D",
+        "fg": "#E5F3FF",
+        "fg_muted": "#9CA3AF",
+        "border": "#1F2937",
+        "bubble_user": "#0F766E",
+        "bubble_bot": "#111827",
+        "accent": "#8B5CF6",
+        "accent_dark": "#6366F1",
+        "list_bg": "#050816",
+        "list_sel_bg": "#8B5CF6",
+        "list_sel_fg": "#F9FAFB",
+        "bg_button": "#111827",
+        "bg_button_active": "#1F2937",
+    },
+}

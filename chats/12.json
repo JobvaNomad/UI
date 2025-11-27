@@ -1,0 +1,15 @@
+[
+  {
+    "sender": "user",
+    "text": "qw",
+    "time": "15:09",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: qw",
+    "time": "15:09",
+    "date": "27.11.2025",
+    "rating": ""
+  }
+]
