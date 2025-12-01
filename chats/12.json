@@ -10,6 +10,19 @@
     "text": "Эхо: qw",
     "time": "15:09",
     "date": "27.11.2025",
-    "rating": ""
+    "rating": "like"
+  },
+  {
+    "sender": "user",
+    "text": "Думаешь7",
+    "time": "16:34",
+    "date": "27.11.2025"
+  },
+  {
+    "sender": "bot",
+    "text": "Эхо: Думаешь7",
+    "time": "16:34",
+    "date": "27.11.2025",
+    "rating": "dislike"
   }
 ]

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
-    QSplitter,
+    # QSplitter,   # сплиттер больше не нужен
     QListWidget,
     QTextBrowser,
     QLineEdit,
@@ -42,7 +42,7 @@ class ChatWindow(QMainWindow):
 
         # --- состояние и таймер анимации "Думаю..." в пузырьке бота ---
         self.typing_timer = QTimer(self)
-        self.typing_timer.setInterval(500)  # обновляем каждые 0.5 сек
+        self.typing_timer.setInterval(500)
         self.typing_timer.timeout.connect(self.update_typing_indicator)
         self.typing_dot_count = 0
         self.typing_chat_name: str | None = None
@@ -65,9 +65,6 @@ class ChatWindow(QMainWindow):
         self.setCentralWidget(central)
         root_layout = QHBoxLayout(central)
         root_layout.setContentsMargins(0, 0, 0, 0)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        root_layout.addWidget(splitter)
 
         # ===== Левая панель (чаты) =====
         left_widget = QWidget()
@@ -100,7 +97,9 @@ class ChatWindow(QMainWindow):
         self.theme_btn = QPushButton("☀ Светлая тема")
         left_layout.addWidget(self.theme_btn)
 
-        splitter.addWidget(left_widget)
+        # фиксируем ширину списка чатов, чтобы её нельзя было менять
+        left_widget.setFixedWidth(250)
+        root_layout.addWidget(left_widget)
 
         # ===== Правая панель (чат) =====
         right_widget = QWidget()
@@ -133,7 +132,6 @@ class ChatWindow(QMainWindow):
         )
         right_layout.addWidget(self.chat_view, 1)
 
-        # можно оставить как статусную строку, но для "Думаю..." мы её уже не используем
         self.typing_label = QLabel("")
         self.typing_label.setStyleSheet("color: #6B7280; font-size: 9pt;")
         right_layout.addWidget(self.typing_label)
@@ -148,8 +146,8 @@ class ChatWindow(QMainWindow):
         bottom_layout.addWidget(self.send_btn)
         right_layout.addLayout(bottom_layout)
 
-        splitter.addWidget(right_widget)
-        splitter.setStretchFactor(1, 1)
+        # правая панель растягивается, левая — фиксирована
+        root_layout.addWidget(right_widget, 1)
 
         # Сигналы
         self.chat_list.currentRowChanged.connect(self.on_chat_selected)
@@ -445,17 +443,58 @@ class ChatWindow(QMainWindow):
                 else ""
             )
 
-            like_color = t["accent"] if rating == "like" else t["fg_muted"]
-            dislike_color = t["accent"] if rating == "dislike" else t["fg_muted"]
+            # более наглядное отображение выбранного лайка/дизлайка
+            like_selected = rating == "like"
+            dislike_selected = rating == "dislike"
+
+            # бледный цвет для неактивной кнопки
+            dim_color = "#D1D5DB"
+
+            if like_selected:
+                like_color = t["accent"]
+                dislike_color = dim_color
+            elif dislike_selected:
+                like_color = dim_color
+                dislike_color = t["accent"]
+            else:
+                like_color = t["fg_muted"]
+                dislike_color = t["fg_muted"]
+
+            # фон для выбранной кнопки
+            like_bg = "#E0E7FF" if like_selected else "transparent"
+            dislike_bg = "#FEE2E2" if dislike_selected else "transparent"
+
+            # рамка для выбранной кнопки
+            like_border = t["accent"] if like_selected else "#E5E7EB"
+            dislike_border = t["accent"] if dislike_selected else "#E5E7EB"
 
             rating_div = ""
             if index is not None and index >= 0:
                 rating_div = f"""
-            <div style="font-size:9pt; text-align:right; margin-top:2px;">
+            <div style="font-size:9pt; text-align:right; margin-top:4px;">
               <a href="rate:{index}:like"
-                 style="text-decoration:none; color:{like_color}; margin-right:6px;">👍</a>
+                 style="text-decoration:none;
+                        color:{like_color};
+                        background-color:{like_bg};
+                        padding:4px 10px;
+                        border-radius:999px;
+                        border:1px solid {like_border};
+                        margin-right:8px;
+                        display:inline-block;">
+                <span style="font-size:13pt; vertical-align:middle;">👍</span>
+                <span style="margin-left:4px; vertical-align:middle;">Полезно</span>
+              </a>
               <a href="rate:{index}:dislike"
-                 style="text-decoration:none; color:{dislike_color};">👎</a>
+                 style="text-decoration:none;
+                        color:{dislike_color};
+                        background-color:{dislike_bg};
+                        padding:4px 10px;
+                        border-radius:999px;
+                        border:1px solid {dislike_border};
+                        display:inline-block;">
+                <span style="font-size:13pt; vertical-align:middle;">👎</span>
+                <span style="margin-left:4px; vertical-align:middle;">Не помогает</span>
+              </a>
             </div>
             """
 
